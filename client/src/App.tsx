@@ -1,11 +1,12 @@
 import './App.css';
-import { HelloWorld } from './components/HelloWorld';
+import { ImageUpload } from './components/ImageUpload';
 
 function App() {
     return (
         <div className="App">
             <header className="App-header">
-                <HelloWorld />
+                <h1>ez budget</h1>
+                <ImageUpload />
             </header>
         </div>
     );

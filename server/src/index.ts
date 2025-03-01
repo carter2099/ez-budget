@@ -1,9 +1,8 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { db } from './db';
 import { AppError } from './types/errors';
-import { initJob } from './jobs/job';
+import { OcrService } from './services/OcrService';
 
 dotenv.config();
 
@@ -12,9 +11,12 @@ const port = 3001;
 
 app.use(cors());
 app.use(express.json());
+app.use(express.raw({ type: 'image/*', limit: '10mb' }));
 
 // Start background jobs
-initJob();
+//initJob();
+
+const ocrService = new OcrService();
 
 // POST
 app.post('/api/myPost', async (_req: Request, res: Response) => {
@@ -45,6 +47,28 @@ app.get('/api/myGet', async (_req: Request, res: Response) => {
 
 app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({ status: 'ok' });
+});
+
+// Replace multer with direct buffer handling
+app.post('/api/ocr', async (req: Request, res: Response) => {
+    try {
+        if (!req.body || !Buffer.isBuffer(req.body) || req.body.length === 0) {
+            throw new AppError('No image data provided', 400);
+        }
+
+        const transactions = await ocrService.processImage(req.body);
+        res.json({ 
+            success: true, 
+            transactions,
+            rawText: transactions.map(t => `${t.details} ${t.amount}`).join('\n')
+        });
+    } catch (error) {
+        console.error('OCR Error:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: error instanceof Error ? error.message : 'Failed to process image' 
+        });
+    }
 });
 
 // Error handling middleware
